@@ -1,0 +1,4 @@
+aiogram>=3.7,<4
+playwright>=1.40
+asyncpg>=0.29
+python-dotenv>=1.0
