@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Big Brother</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root[data-theme="dark"] {
+      --bg: #171d25;
+      --sec-bg: #212a35;
+      --text: #ffffff;
+      --hint: #7e8b9b;
+      --link: #4ea4f6;
+      --btn: #2e7bc4;
+      --btn-text: #ffffff;
+      --border: #2a3543;
+      --item-hover: rgba(255, 255, 255, 0.04);
+      --green: #4cd964;
+      --red: #ff453a;
+      --btn-glow: 0 4px 16px rgba(46, 123, 196, 0.4);
+      --sold-glow: 0 2px 8px rgba(76, 217, 100, 0.3);
+      --del-glow: 0 2px 8px rgba(255, 69, 58, 0.25);
+    }
+
+    :root[data-theme="light"] {
+      --bg: #efeff4;
+      --sec-bg: #ffffff;
+      --text: #000000;
+      --hint: #8e8e93;
+      --link: #2481cc;
+      --btn: #2481cc;
+      --btn-text: #ffffff;
+      --border: #e5e5ea;
+      --item-hover: rgba(0, 0, 0, 0.03);
+      --green: #34c759;
+      --red: #ff3b30;
+      --btn-glow: 0 4px 14px rgba(36, 129, 204, 0.3);
+      --sold-glow: 0 2px 6px rgba(52, 199, 89, 0.2);
+      --del-glow: 0 2px 6px rgba(255, 59, 48, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Roboto", "Helvetica Neue", sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      padding-top: calc(env(safe-area-inset-top, 0px) + 64px);
+      padding-left: 16px;
+      padding-right: 16px;
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 98px);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .header {
+      text-align: center;
+      padding: 0 0 16px 0;
+    }
+
+    #canvas-container {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 8px auto;
+      cursor: grab;
+    }
+    #canvas-container:active {
+      cursor: grabbing;
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: -0.4px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: var(--hint);
+      line-height: 1.45;
+      max-width: 310px;
+      margin: 0 auto;
+    }
+    .subtitle a {
+      color: var(--link);
+      text-decoration: none;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 18px 0 10px 2px;
+      letter-spacing: -0.3px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .list-group {
+      background: var(--sec-bg);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+    .list-item {
+      display: flex;
+      align-items: center;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+    }
+    .list-item:last-child {
+      border-bottom: none;
+    }
+    .list-item:active {
+      background: var(--item-hover);
+    }
+
+    .item-icon-3d {
+      width: 34px;
+      height: 34px;
+      margin-right: 14px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .item-icon-3d img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 5px rgba(0,0,0,0.15));
+    }
+
+    .item-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .item-name {
+      font-size: 15px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .item-sub {
+      font-size: 13px;
+      color: var(--hint);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .arrow {
+      color: var(--hint);
+      font-size: 18px;
+      margin-left: 8px;
+    }
+
+    .action-add {
+      color: var(--link);
+      font-weight: 500;
+      font-size: 15px;
+    }
+    .action-add svg {
+      width: 24px;
+      height: 24px;
+      margin-right: 14px;
+      fill: none;
+      stroke: var(--link);
+      stroke-width: 2;
+      flex-shrink: 0;
+    }
+
+    .btn-main {
+      width: 100%;
+      padding: 14px;
+      background: var(--btn);
+      color: var(--btn-text);
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+      box-shadow: var(--btn-glow);
+      transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.15s ease;
+    }
+    .btn-main:active {
+      transform: scale(0.985);
+      filter: brightness(0.92);
+    }
+
+    .page-container {
+      position: relative;
+      width: 100%;
+    }
+    .tab-pane {
+      display: none;
+      width: 100%;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .tab-pane.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--sec-bg);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      padding-top: 8px;
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+      z-index: 100;
+      backdrop-filter: blur(24px);
+    }
+
+    .tab-bar.hide-keyboard {
+      display: none !important;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      padding: 2px 0;
+      transition: all 0.18s ease;
+    }
+
+    .tab-3d-icon {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      filter: grayscale(0.85) opacity(0.55);
+      transform: scale(0.95);
+      transition: filter 0.22s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .tab-btn span {
+      font-size: 11.5px;
+      font-weight: 500;
+      letter-spacing: -0.2px;
+      color: var(--hint);
+      transition: color 0.2s ease, font-weight 0.2s ease;
+    }
+
+    .tab-btn.active .tab-3d-icon {
+      filter: grayscale(0) opacity(1);
+      transform: scale(1.15);
+    }
+    .tab-btn.active span {
+      color: var(--link);
+      font-weight: 700;
+    }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; color: var(--hint); margin-bottom: 6px; }
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--sec-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-container">
+    <!-- Главная -->
+    <div id="tab-home" class="tab-pane active">
+      <div class="header">
+        <div id="canvas-container"></div>
+        <div class="title">Big Brother</div>
+        <div class="subtitle">Мониторинг объявлений Kufar: новые лоты приходят прямо в чат. <a href="javascript:void(0)" onclick="switchTab('tab-settings')">Настроить ›</a></div>
+      </div>
+
+      <div class="section-title">
+        <span>Мониторинг</span>
+      </div>
+      <div class="list-group">
+        <div class="list-item" onclick="switchTab('tab-settings')">
+          <div class="item-icon-3d">
+            <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Satellite%20antenna/3D/satellite_antenna_3d.png" alt="Queries">
+          </div>
+          <div class="item-content">
+            <div class="item-name">Запросы в автопоиске</div>
+            <div class="item-sub">Слежу за новыми лотами в фоне</div>
+          </div>
+          <div id="dashQueriesCount" style="font-weight: 700; font-size: 15px;">0</div>
+          <div class="arrow">›</div>
+        </div>
+        <div class="list-item" onclick="switchTab('tab-settings')">
+          <div class="item-icon-3d">
+            <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Gear/3D/gear_3d.png" alt="Stop words">
+          </div>
+          <div class="item-content">
+            <div class="item-name">Минус-слова</div>
+            <div class="item-sub">Такие лоты пропускаются</div>
+          </div>
+          <div id="dashStopCount" style="font-weight: 700; font-size: 15px;">0</div>
+          <div class="arrow">›</div>
+        </div>
+        <div class="list-item" onclick="switchTab('tab-settings')">
+          <div class="item-icon-3d">
+            <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Chart%20increasing/3D/chart_increasing_3d.png" alt="Limit">
+          </div>
+          <div class="item-content">
+            <div class="item-name">Лимит разового поиска</div>
+            <div class="item-sub">Лотов в ответ на /search</div>
+          </div>
+          <div id="dashLimit" style="font-weight: 700; font-size: 15px;">3</div>
+          <div class="arrow">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Настройки -->
+    <div id="tab-settings" class="tab-pane">
+      <div class="section-title">Разовый поиск (/search)</div>
+      <div class="form-group">
+        <label>Лимит выдачи лотов (шт.)</label>
+        <input type="number" id="searchLimitInput" min="1" max="10" value="3">
+      </div>
+
+      <div class="section-title" style="margin-top: 20px;">Авто-мониторинг (/track)</div>
+      <div class="list-group">
+        <div class="list-item action-add" onclick="promptAddQuery()">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+          <div class="item-name">Добавить товар для авто-слежения</div>
+        </div>
+        <div id="queriesListContainer"></div>
+      </div>
+
+      <div class="section-title" style="margin-top: 16px;">Минус-слова</div>
+      <div class="form-group">
+        <textarea id="stopWordsInput" rows="3" placeholder="чехол, стекло, коробка, запчасти, эвакуатор"></textarea>
+      </div>
+      <button class="btn-main" onclick="saveSettings()">Сохранить настройки</button>
+    </div>
+  </div>
+
+  <div class="tab-bar" id="mainTabBar">
+    <button class="tab-btn active" onclick="switchTab('tab-home')">
+      <img class="tab-3d-icon" src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Chart%20increasing/3D/chart_increasing_3d.png" alt="Home">
+      <span>Главная</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('tab-settings')">
+      <img class="tab-3d-icon" src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Gear/3D/gear_3d.png" alt="Settings">
+      <span>Настройки</span>
+    </button>
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+
+    function applyTelegramTheme() {
+      const scheme = tg?.colorScheme || 'dark';
+      document.documentElement.setAttribute('data-theme', scheme);
+      if (tg) {
+        tg.setHeaderColor(scheme === 'dark' ? '#171d25' : '#efeff4');
+        tg.setBackgroundColor(scheme === 'dark' ? '#171d25' : '#efeff4');
+      }
+      if (window.update3DTheme) window.update3DTheme(scheme);
+    }
+
+    if (tg) { 
+      tg.ready();
+      tg.expand();
+      if (tg.requestFullscreen) {
+        try { tg.requestFullscreen(); } catch (e) {}
+      }
+      applyTelegramTheme();
+      tg.onEvent('themeChanged', applyTelegramTheme);
+    } else {
+      applyTelegramTheme();
+    }
+
+    // Three.js: Контрастный графитовый 3D-логотип
+    (function init3D() {
+      if (typeof THREE === 'undefined') return;
+      const container = document.getElementById('canvas-container');
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+      camera.position.z = 3.6;
+
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setSize(100, 100);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      const group = new THREE.Group();
+      scene.add(group);
+
+      function createFaceTexture(coinBgColor, barColor) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = coinBgColor;
+        ctx.fillRect(0, 0, 512, 512);
+
+        ctx.save();
+        ctx.translate(256, 256);
+        ctx.fillStyle = barColor;
+
+        function drawBar(angle) {
+          ctx.save();
+          ctx.rotate(angle);
+          ctx.beginPath();
+          ctx.roundRect(-42, -145, 84, 290, 22);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        drawBar(Math.PI / 4);
+        drawBar(-Math.PI / 4);
+
+        ctx.fillStyle = coinBgColor;
+        ctx.beginPath();
+        ctx.rotate(Math.PI / 4);
+        ctx.roundRect(-42, -42, 84, 84, 8);
+        ctx.fill();
+
+        ctx.restore();
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.anisotropy = 4;
+        return tex;
+      }
+
+      const sideMat = new THREE.MeshStandardMaterial({
+        color: 0x2b3543,
+        roughness: 0.3,
+        metalness: 0.6
+      });
+
+      let faceTex = createFaceTexture('#2b3543', '#4ea4f6');
+
+      const faceMat = new THREE.MeshStandardMaterial({
+        color: 0x2b3543,
+        map: faceTex,
+        roughness: 0.3,
+        metalness: 0.6
+      });
+
+      const hexGeo = new THREE.CylinderGeometry(1.22, 1.22, 0.22, 6);
+      const hexMesh = new THREE.Mesh(hexGeo, [sideMat, faceMat, faceMat]);
+      hexMesh.rotation.x = Math.PI / 2;
+      hexMesh.rotation.z = Math.PI / 6;
+      group.add(hexMesh);
+
+      // Легкая контурная обводка граней для четкости на темном фоне
+      const edgeGeo = new THREE.EdgesGeometry(hexGeo);
+      const edgeMat = new THREE.LineBasicMaterial({ color: 0x3d4b5e, linewidth: 1.5 });
+      const edgeLines = new THREE.LineSegments(edgeGeo, edgeMat);
+      hexMesh.add(edgeLines);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1.3);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
+      dirLight.position.set(4, 5, 5);
+      scene.add(dirLight);
+
+      const backLight = new THREE.DirectionalLight(0x4ea4f6, 0.8);
+      backLight.position.set(-3, -3, -3);
+      scene.add(backLight);
+
+      window.update3DTheme = function(scheme) {
+        if (scheme === 'dark') {
+          // Темная тема: темный титановый корпус (#2b3543) + яркие синие балки (#4ea4f6)
+          sideMat.color.setHex(0x2b3543);
+          faceMat.color.setHex(0x2b3543);
+          edgeMat.color.setHex(0x3d4b5e);
+          faceTex = createFaceTexture('#2b3543', '#4ea4f6');
+        } else {
+          // Светлая тема: глубокий ночной синий (#0f233d) + белые балки (#ffffff)
+          sideMat.color.setHex(0x0f233d);
+          faceMat.color.setHex(0x0f233d);
+          edgeMat.color.setHex(0x1e3b60);
+          faceTex = createFaceTexture('#0f233d', '#ffffff');
+        }
+        faceMat.map = faceTex;
+        faceMat.needsUpdate = true;
+      };
+
+      let isDragging = false;
+      let prevX = 0, prevY = 0;
+      let targetRotX = 0.12, targetRotY = 0;
+
+      container.addEventListener('pointerdown', (e) => {
+        isDragging = true;
+        prevX = e.clientX;
+        prevY = e.clientY;
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const deltaX = e.clientX - prevX;
+        const deltaY = e.clientY - prevY;
+        targetRotY += deltaX * 0.015;
+        targetRotX += deltaY * 0.015;
+        prevX = e.clientX;
+        prevY = e.clientY;
+      });
+
+      window.addEventListener('pointerup', () => { isDragging = false; });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (!isDragging) {
+          targetRotY += 0.012;
+          targetRotX = Math.sin(Date.now() * 0.0015) * 0.15 + 0.08;
+        }
+        group.rotation.y += (targetRotY - group.rotation.y) * 0.1;
+        group.rotation.x += (targetRotX - group.rotation.x) * 0.1;
+        renderer.render(scene, camera);
+      }
+      animate();
+    })();
+
+    const tabBarEl = document.getElementById('mainTabBar');
+
+    document.addEventListener('focusin', (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+        tabBarEl.classList.add('hide-keyboard');
+      }
+    });
+
+    document.addEventListener('focusout', (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+        tabBarEl.classList.remove('hide-keyboard');
+      }
+    });
+
+    if (window.visualViewport) {
+      let initialHeight = window.visualViewport.height;
+      window.visualViewport.addEventListener('resize', () => {
+        if (window.visualViewport.height < initialHeight * 0.8) {
+          tabBarEl.classList.add('hide-keyboard');
+        } else {
+          tabBarEl.classList.remove('hide-keyboard');
+        }
+      });
+    }
+
+    const userId = tg?.initDataUnsafe?.user?.id || 0;
+
+    let appData = { queries: [], stopWords: '', searchLimit: 3 };
+
+    // ---------- helpers ----------
+    function esc(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function notify(msg) {
+      try { if (tg?.showAlert) { tg.showAlert(msg); return; } } catch (e) {}
+      alert(msg);
+    }
+    async function rpc(name, body) {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+        method: 'POST', headers: SB_HEADERS, body: JSON.stringify(body)
+      });
+      if (!r.ok) throw new Error(`${name}: HTTP ${r.status}`);
+      const t = await r.text();
+      return t ? JSON.parse(t) : null;
+    }
+
+    let settingsLoaded = false;
+    function switchTab(tabId) {
+      const tabs = ['tab-home', 'tab-settings'];
+      const activeIdx = tabs.indexOf(tabId);
+
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      
+      const targetPane = document.getElementById(tabId);
+      if (targetPane) targetPane.classList.add('active');
+
+      const btns = document.querySelectorAll('.tab-btn');
+      if (btns[activeIdx]) btns[activeIdx].classList.add('active');
+
+      if (tg?.HapticFeedback) {
+        try { tg.HapticFeedback.selectionChanged(); } catch (e) {}
+      }
+
+      renderAll();
+    }
+
+    async function promptAddQuery() {
+      const q = prompt('Введите название товара для авто-мониторинга:');
+      if (!q || !q.trim()) return;
+      const v = q.trim().slice(0, 80);
+      if (appData.queries.some(x => x.toLowerCase() === v.toLowerCase())) return;
+      if (appData.queries.length >= 20) { notify('Максимум 20 запросов.'); return; }
+      appData.queries.push(v);
+      if (!(await saveSettings(true))) { appData.queries.pop(); renderAll(); }
+    }
+
+    async function removeQuery(idx) {
+      const [removed] = appData.queries.splice(idx, 1);
+      if (!(await saveSettings(true))) { appData.queries.splice(idx, 0, removed); renderAll(); }
+    }
+
+    function renderAll() {
+      const words = appData.stopWords.split(',').map(s => s.trim()).filter(Boolean);
+      document.getElementById('dashQueriesCount').innerText = appData.queries.length;
+      document.getElementById('dashStopCount').innerText = words.length;
+      document.getElementById('dashLimit').innerText = appData.searchLimit;
+
+      const qContainer = document.getElementById('queriesListContainer');
+      if (appData.queries.length === 0) {
+        qContainer.innerHTML = '<div style="padding:16px; text-align:center; color:var(--hint); font-size:13px;">Нет активных запросов</div>';
+      } else {
+        qContainer.innerHTML = appData.queries.map((q, idx) => `
+          <div class="list-item">
+            <div class="item-icon-3d">
+              <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Satellite%20antenna/3D/satellite_antenna_3d.png" alt="Scan">
+            </div>
+            <div class="item-content">
+              <div class="item-name">${esc(q)}</div>
+              <div class="item-sub">Фоновый мониторинг</div>
+            </div>
+            <div class="arrow" onclick="removeQuery(${idx})">✕</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    async function saveSettings(silent = false) {
+      if (!userId) {
+        notify('Откройте приложение из Telegram — иначе настройки не сохранятся.');
+        return false;
+      }
+      if (!settingsLoaded) {
+        notify('Настройки ещё не загружены. Проверьте интернет и откройте приложение заново.');
+        return false;
+      }
+      const limitVal = parseInt(document.getElementById('searchLimitInput').value);
+      if (!isNaN(limitVal)) appData.searchLimit = Math.min(10, Math.max(1, limitVal));
+
+      const words = document.getElementById('stopWordsInput').value
+        .split(',').map(s => s.trim()).filter(Boolean);
+
+      try {
+        await rpc('bb_save_settings', {
+          p_user_id: userId,
+          p_queries: appData.queries,
+          p_stop_words: words,
+          p_limit: appData.searchLimit
+        });
+      } catch (e) {
+        console.error(e);
+        notify('Не удалось сохранить. Проверьте соединение.');
+        return false;
+      }
+      appData.stopWords = words.join(', ');
+      document.getElementById('searchLimitInput').value = appData.searchLimit;
+      renderAll();
+      if (!silent) {
+        notify('Настройки сохранены!');
+        switchTab('tab-home');
+      }
+      return true;
+    }
+
+    async function loadUserSettings() {
+      if (!userId) { renderAll(); return; }
+      try {
+        const d = await rpc('bb_get', { p_user_id: userId });
+        appData.queries = d.queries || [];
+        appData.searchLimit = d.search_limit || 3;
+        appData.stopWords = (d.stop_words || []).join(', ');
+        document.getElementById('stopWordsInput').value = appData.stopWords;
+        document.getElementById('searchLimitInput').value = appData.searchLimit;
+        settingsLoaded = true;
+      } catch (e) {
+        console.error(e);
+        notify('Не удалось загрузить настройки. Проверьте соединение.');
+      }
+      renderAll();
+    }
+
+    loadUserSettings();
+  </script>
+</body>
+</html>
